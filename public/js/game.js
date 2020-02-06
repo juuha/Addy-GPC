@@ -23,9 +23,9 @@ game.deck = []
 game.hand = []
 game.pile = []
 game.selected = []
-var posY = 500
-var pilePosX = 300
-var pilePosY = 280
+const posY = 500
+const pilePosX = 300
+const pilePosY = 280
 
 function preload() {
     for (var i = 1; i < 53; i++) {
@@ -128,10 +128,10 @@ function update() {
         won = 1
     }
     var handPosX = 48
-    var handMinX = 32
+    const handMinX = 32
     var handAdd = Math.min(handMinX, 800 / game.hand.length ? 720 / game.hand.length : handMinX * 2)
     for(var i = 0; i < game.hand.length; i++) {        
-        var card = game.hand[i]
+        let card = game.hand[i]
         card.setDepth(i)
         card.x = handPosX
         handPosX += handAdd
@@ -139,7 +139,7 @@ function update() {
 
     if (game.pile.length) {
         for(var i = 0; i < game.pile.length; i++) {        
-            var pileCard = game.pile[i]
+            let pileCard = game.pile[i]
             pileCard.setDepth(i)
             pileCard.x = pilePosX
             pileCard.y = pilePosY
