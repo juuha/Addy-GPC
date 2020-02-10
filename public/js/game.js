@@ -32,16 +32,14 @@ function preload() {
         this.load.image('card' +i, 'assets/' + i + '.png')
     }
     this.load.image('deck', 'assets/blue.png')
+    //TODO: change play button sprite
     this.load.image('button', 'assets/red.png')
 }
 
 function create() {
-    var self = this
     this.socket = io()
     
     for (var i = 1; i < 53; i++) {
-        var x = Phaser.Math.Between(50, 750)
-        var y = Phaser.Math.Between(50, 550)
         var card = this.add.image(900, posY, 'card'+i)
         card.name = "Card: " + i
         card.value = i % 13
@@ -152,14 +150,12 @@ function update() {
 var move = 30
 
 function hoverOverHandler (card) {
-    //console.log(card.name)
     if (!game.selected.includes(card) || game.deck.includes(card)) {
         card.y = posY - move
     }
 }
 
 function hoverOutHandler (card) {
-    //console.log(card.name)
     if (!game.selected.includes(card) || game.deck.includes(card)) {
         card.y = posY
     }
