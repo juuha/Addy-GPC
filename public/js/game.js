@@ -38,8 +38,8 @@ function preload() {
 
 function create() {
     var scene = this
-    this.socket = io()
-    this.socket.on('cards', function (hand, pile) {
+    game.socket = io()
+    game.socket.on('cards', function (hand, pile) {
         for (var handCard of hand) {
             let card = newCard(handCard, 900, handPosY, scene)
             game.hand.push(card)
@@ -49,14 +49,26 @@ function create() {
             game.pile.push(card)
         }
     })
+
+    game.socket.on('yo', function () {
+        console.log('yo')
+    })
     
-    this.socket.on('drawnCard', function (drawnCard) {
+    game.socket.on('drawnCard', function (drawnCard) {
         let card = newCard(drawnCard, 900, handPosY, scene)
         game.hand.push(card)
     })
 
-    this.socket.on('deckEmpty', function () {
+    game.socket.on('deckEmpty', function () {
         console.log('Deck is empty')
+    })
+
+    game.socket.on('playedCards', function (pile) {
+        game.pile = []
+        for (let pileCard of pile) {
+            var card = newCard(pileCard, pilePosX, pilePosY, scene)
+            game.pile.push(card)            
+        }
     })
     
     var drawCardButton = this.add.image(690, 280, 'deck')
@@ -74,13 +86,15 @@ function create() {
         gameObject[0].emit('hoveredout', gameObject[0])
     }, this)
     
+    // When clicking any object
     this.input.on('pointerup', function (pointer, gameObject) {
         if (!gameObject[0]) return
         gameObject[0].emit('clicked', gameObject[0])
     }, this)
     
+    // When clicking draw button
     drawCardButton.on('pointerup', function (pointer) {
-        this.socket.emit('drawCard')
+        game.socket.emit('drawCard')
     }, this)
     
     playCardButton.on('pointerup', function (pointer) {
@@ -89,16 +103,17 @@ function create() {
             game.selected.forEach(card => {
                 sum += card.value
             })
+            // Check is only done locally
             if (sum % 10 === game.pile[game.pile.length - 1].value % 10) {
+                let cardsToEmit = []
                 game.selected.forEach(card => {
-                    card.y = pilePosY
-                    card.x = pilePosX
-                    game.pile.push(card)
+                    cardsToEmit.push({name: card.name, value: card.value})
                     const indexHand = game.hand.indexOf(card)
                     game.hand.splice(indexHand, 1)
+                    card.destroy()
                 })
+                game.socket.emit('playCards', cardsToEmit)
                 game.selected = []
-                
             } else {
                 console.log('sum:' +sum)
                 console.log('topcard:' + game.pile[game.pile.length - 1].value)
@@ -169,16 +184,6 @@ function clickHandler (card) {
         game.selected.push(card)
         card.y = handPosY - move
     }
-}
-
-function shuffle (deck) {
-    for (let i = deck.length -1; i > 0; i--) {
-        const j = Math.floor(Math.random() * i)
-        const temp = deck[i]
-        deck[i] = deck[j]
-        deck[j] = temp
-    }
-    return deck
 }
 
 function newCard (givenCard, posX, posY, scene) {

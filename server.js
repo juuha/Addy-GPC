@@ -22,6 +22,10 @@ io.on('connection', async function (socket) {
     socket.on('drawCard', function () {
         drawCard(socket)
     })
+
+    socket.on('playCards', function (cards) {
+        playCards(socket, cards)
+    })
     
     socket.on('disconnect', function () {
         disconnect(socket)
@@ -53,6 +57,7 @@ function newSocket (socket) {
                 room.players[socket.id].push(room.deck.pop())
             }
             players[socket.id] = room.id
+            socket.join(room.id)
             if (Object.keys(room.players).length == maxPlayers) {
                 room.joinable = 0
             }
@@ -85,6 +90,7 @@ function newSocket (socket) {
         
         newRoom.id = id
         rooms[id] = newRoom
+        socket.join(id)
         players[socket.id] = id
         socket.emit('cards', newRoom.players[socket.id], newRoom.pile)
         id++
@@ -112,8 +118,23 @@ function disconnect(socket) {
 function drawCard (socket) {
     var room = rooms[players[socket.id]]
     if (room.deck.length > 0) {
-        socket.emit('drawnCard', room.deck.pop())
+        let drawnCard = room.deck.pop()
+        socket.emit('drawnCard', drawnCard)
+        room.players[socket.id].push(drawnCard)
     } else {
         socket.emit('deckEmpty')
     }
+}
+
+function playCards (socket, cards) {
+    var room = rooms[players[socket.id]]
+    for (var card of cards) {
+        room.pile.push(card)
+        var indexOfPlayedCard = (room.players[socket.id].map(function(e) {
+            return e.name
+        }).indexOf(card.name))
+        room.players[socket.id].splice(indexOfPlayedCard, 1)
+        topCard = card
+    }
+    io.to(room.id).emit('playedCards', room.pile)
 }
