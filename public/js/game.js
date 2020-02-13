@@ -23,7 +23,7 @@ game.deck = []
 game.hand = []
 game.pile = []
 game.selected = []
-const posY = 500
+const handPosY = 500
 const pilePosX = 300
 const pilePosY = 280
 
@@ -37,32 +37,33 @@ function preload() {
 }
 
 function create() {
+    var scene = this
     this.socket = io()
+    this.socket.on('cards', function (hand, pile) {
+        for (var handCard of hand) {
+            let card = newCard(handCard, 900, handPosY, scene)
+            game.hand.push(card)
+        }
+        for (var pileCard of pile) {
+            let card = newCard(pileCard, pilePosX, pilePosY, scene)
+            game.pile.push(card)
+        }
+    })
     
-    for (var i = 1; i < 53; i++) {
-        var card = this.add.image(900, posY, 'card'+i)
-        card.name = "Card: " + i
-        card.value = i % 13
-        card.value = card.value == 0 ? 13 : card.value
-        //console.log(card.value)
-        card.setInteractive()
-        card.on('hovered', hoverOverHandler, this)
-        card.on('hoveredout', hoverOutHandler, this)
-        card.on('clicked', clickHandler, this)
-        //this.physics.add.collider(card)
-        game.deck.push(card)
-    }
-    game.deck = shuffle(game.deck)
-    game.pile.push(game.deck.pop())
-    for (var i = 0; i < 7; i++) {
-        game.hand.push(game.deck.pop())
-    }
+    this.socket.on('drawnCard', function (drawnCard) {
+        let card = newCard(drawnCard, 900, handPosY, scene)
+        game.hand.push(card)
+    })
+
+    this.socket.on('deckEmpty', function () {
+        console.log('Deck is empty')
+    })
     
-    var drawButton = this.add.image(690, 280, 'deck')
-    drawButton.setInteractive()
+    var drawCardButton = this.add.image(690, 280, 'deck')
+    drawCardButton.setInteractive()
     
-    var playButton = this.add.image(690, 380, 'button')
-    playButton.setInteractive()
+    var playCardButton = this.add.image(690, 380, 'button')
+    playCardButton.setInteractive()
     
     this.input.on('pointerover', function (pointer, gameObject)
     {           
@@ -78,17 +79,11 @@ function create() {
         gameObject[0].emit('clicked', gameObject[0])
     }, this)
     
-    drawButton.on('pointerup', function (pointer) {
-        if (game.deck.length > 0) {
-            var card = game.deck.pop()
-            //console.log(card.name)
-            game.hand.push(card)
-        } else {
-            console.log('deck empty')
-        }
+    drawCardButton.on('pointerup', function (pointer) {
+        this.socket.emit('drawCard')
     }, this)
     
-    playButton.on('pointerup', function (pointer) {
+    playCardButton.on('pointerup', function (pointer) {
         if (game.selected.length) {
             var sum = 0
             game.selected.forEach(card => {
@@ -134,7 +129,7 @@ function update() {
         card.x = handPosX
         handPosX += handAdd
     }
-
+    
     if (game.pile.length) {
         for(var i = 0; i < game.pile.length; i++) {        
             let pileCard = game.pile[i]
@@ -150,14 +145,14 @@ function update() {
 var move = 30
 
 function hoverOverHandler (card) {
-    if (!game.selected.includes(card) || game.deck.includes(card)) {
-        card.y = posY - move
+    if (game.hand.includes(card) && !game.selected.includes(card)) {
+        card.y = handPosY - move
     }
 }
 
 function hoverOutHandler (card) {
-    if (!game.selected.includes(card) || game.deck.includes(card)) {
-        card.y = posY
+    if (game.hand.includes(card) && !game.selected.includes(card)) {
+        card.y = handPosY
     }
 }
 
@@ -166,13 +161,13 @@ function clickHandler (card) {
         const index = game.selected.indexOf(card)
         if (index > -1) {
             game.selected.splice(index, 1)
-            card.y = posY
+            card.y = handPosY
         }
     } else {
         if (game.selected.length > 2) return
         console.log('added ' + card.name + ' with value ' + card.value)
         game.selected.push(card)
-        card.y = posY - move
+        card.y = handPosY - move
     }
 }
 
@@ -184,4 +179,16 @@ function shuffle (deck) {
         deck[j] = temp
     }
     return deck
+}
+
+function newCard (givenCard, posX, posY, scene) {
+    let card = scene.add.image(posX, posY, 'card'+givenCard.name)
+    card.name = givenCard.name
+    card.value = givenCard.value
+    card.setInteractive()
+    card.on('hovered', hoverOverHandler, this)
+    card.on('hoveredout', hoverOutHandler, this)
+    card.on('clicked', clickHandler, this)
+
+    return card
 }

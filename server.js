@@ -6,9 +6,10 @@ const util = require('util')
 
 app.use(express.static(__dirname + '/public'))
 
-var rooms = []
+var rooms = {}
 var players = {}
 const maxPlayers = 2
+var id = 0
 
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/index.html')
@@ -16,9 +17,35 @@ app.get('/', function (req, res) {
 
 io.on('connection', async function (socket) {
     console.log('A user connected with id: ' + socket.id)
+    newSocket(socket)
     
+    socket.on('drawCard', function () {
+        drawCard(socket)
+    })
+    
+    socket.on('disconnect', function () {
+        disconnect(socket)
+    })
+    console.log(util.inspect(rooms, false, null, true))
+})
+
+server.listen(8081, function () {
+    console.log(`Listening on ${server.address().port}`)
+})
+
+function shuffle (deck) {
+    for (let i = deck.length -1; i > 0; i--) {
+        const j = Math.floor(Math.random() * i)
+        const temp = deck[i]
+        deck[i] = deck[j]
+        deck[j] = temp
+    }
+    return deck
+}
+
+function newSocket (socket) {
     var roomFound = 0
-    for (var room of rooms) {
+    for (var room of Object.values(rooms)) {
         if (room.joinable) {
             roomFound = 1
             room.players[socket.id] = []
@@ -29,6 +56,7 @@ io.on('connection', async function (socket) {
             if (Object.keys(room.players).length == maxPlayers) {
                 room.joinable = 0
             }
+            socket.emit('cards', room.players[socket.id], room.pile)
             break
         }
     }
@@ -55,18 +83,16 @@ io.on('connection', async function (socket) {
             newRoom.players[socket.id].push(newRoom.deck.pop())
         }
         
-        let id = 0
-        if(rooms[rooms.length -1]) {
-            id = rooms[rooms.length -1].id + 1
-        }
         newRoom.id = id
-        
-        rooms.push(newRoom)
-        players[socket.id] = newRoom.id
+        rooms[id] = newRoom
+        players[socket.id] = id
+        socket.emit('cards', newRoom.players[socket.id], newRoom.pile)
+        id++
     }
-    
-    socket.on('disconnect', function () {
-        var room = rooms[players[socket.id]]
+}
+
+function disconnect(socket) {
+    var room = rooms[players[socket.id]]
         room.joinable = 1
         for (var player in room.players) {
             if (player == socket.id) {
@@ -74,29 +100,20 @@ io.on('connection', async function (socket) {
             }
         }
         if (!Object.keys(room.players).length) {
-            delete room.deck
-            delete room.pile
-            delete room.players
-            room.joinable = 0
+            delete rooms[room.id]
         }
         
         delete players[socket.id]
         
-        console.log('user disconnected with id: ' + socket.id)   
-    })
-    console.log(util.inspect(rooms, false, null, true))
-})
+        console.log('user disconnected with id: ' + socket.id)
+        //console.log(util.inspect(rooms, false, null, true))
+}
 
-server.listen(8081, function () {
-    console.log(`Listening on ${server.address().port}`)
-})
-
-function shuffle (deck) {
-    for (let i = deck.length -1; i > 0; i--) {
-        const j = Math.floor(Math.random() * i)
-        const temp = deck[i]
-        deck[i] = deck[j]
-        deck[j] = temp
+function drawCard (socket) {
+    var room = rooms[players[socket.id]]
+    if (room.deck.length > 0) {
+        socket.emit('drawnCard', room.deck.pop())
+    } else {
+        socket.emit('deckEmpty')
     }
-    return deck
 }
