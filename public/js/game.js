@@ -7,7 +7,7 @@ var config = {
     physics: {
         default: 'arcade',
         arcade: {
-            debug: true
+            debug: false
         }
     },
     scene: {
@@ -21,6 +21,7 @@ var game = new Phaser.Game(config)
 
 game.deck = []
 game.hand = []
+game.opponentHand = []
 game.pile = []
 game.selected = []
 const handPosY = 500
@@ -49,10 +50,6 @@ function create() {
             game.pile.push(card)
         }
     })
-
-    game.socket.on('yo', function () {
-        console.log('yo')
-    })
     
     game.socket.on('drawnCard', function (drawnCard) {
         let card = newCard(drawnCard, 900, handPosY, scene)
@@ -68,6 +65,23 @@ function create() {
         for (let pileCard of pile) {
             var card = newCard(pileCard, pilePosX, pilePosY, scene)
             game.pile.push(card)            
+        }
+    })
+
+    game.socket.on('playerCardCounts', function (playerCardCounts) {
+        for (var [player, count] of Object.entries(playerCardCounts)) {
+            if (game.socket.id != player) {
+                // TODO Destroy instead of move out of sight
+                for (let card of game.opponentHand) {
+                    card.x = 5000
+                    card.y = 5000
+                }
+                game.opponentHand = []
+                for (let i = 0; i < count; i++) {
+                    let card = scene.add.image(48, 100, 'deck')
+                    game.opponentHand.push(card)
+                }
+            }
         }
     })
     
@@ -123,30 +137,27 @@ function create() {
     })
 }
 
-var cardsInHand = 7
-var won = 0
-
 function update() {
-    if (cardsInHand != game.hand.length) {
-        console.log('cards in hand: ' + game.hand.length)
-        cardsInHand = game.hand.length        
-    }
-    if (game.hand.length == 0 && won == 0) {
-        console.log('you win!')
-        won = 1
-    }
     var handPosX = 48
     const handMinX = 32
     var handAdd = Math.min(handMinX, 800 / game.hand.length ? 720 / game.hand.length : handMinX * 2)
-    for(var i = 0; i < game.hand.length; i++) {        
+    for(let i = 0; i < game.hand.length; i++) {        
         let card = game.hand[i]
         card.setDepth(i)
         card.x = handPosX
         handPosX += handAdd
     }
+    var oppHandPosX = 48
+    const oppHandMinX = 32
+    for (let i = 0; i < game.opponentHand.length; i++) {
+        let card = game.opponentHand[i]
+        card.setDepth(i)
+        card.x = oppHandPosX
+        oppHandPosX += handAdd
+    }
     
     if (game.pile.length) {
-        for(var i = 0; i < game.pile.length; i++) {        
+        for(let i = 0; i < game.pile.length; i++) {        
             let pileCard = game.pile[i]
             pileCard.setDepth(i)
             pileCard.x = pilePosX
@@ -187,11 +198,11 @@ function clickHandler (card) {
 }
 
 function newCard (givenCard, posX, posY, scene) {
-    let card = scene.add.image(posX, posY, 'card'+givenCard.name)
+    let card = scene.physics.add.image(posX, posY, 'card'+givenCard.name)
     card.name = givenCard.name
     card.value = givenCard.value
     card.setInteractive()
-    card.on('hovered', hoverOverHandler, this)
+    card.on('hovered', hoverOverHandler)
     card.on('hoveredout', hoverOutHandler, this)
     card.on('clicked', clickHandler, this)
 

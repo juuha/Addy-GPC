@@ -22,7 +22,7 @@ io.on('connection', async function (socket) {
     socket.on('drawCard', function () {
         drawCard(socket)
     })
-
+    
     socket.on('playCards', function (cards) {
         playCards(socket, cards)
     })
@@ -30,7 +30,7 @@ io.on('connection', async function (socket) {
     socket.on('disconnect', function () {
         disconnect(socket)
     })
-    console.log(util.inspect(rooms, false, null, true))
+    //console.log(util.inspect(rooms, false, null, true))
 })
 
 server.listen(8081, function () {
@@ -61,6 +61,7 @@ function newSocket (socket) {
             if (Object.keys(room.players).length == maxPlayers) {
                 room.joinable = 0
             }
+            updateCardCount(room)
             socket.emit('cards', room.players[socket.id], room.pile)
             break
         }
@@ -99,29 +100,29 @@ function newSocket (socket) {
 
 function disconnect(socket) {
     var room = rooms[players[socket.id]]
-        room.joinable = 1
-        for (var player in room.players) {
-            if (player == socket.id) {
-                delete rooms[players[socket.id]].players[player]
-            }
+    room.joinable = 1
+    for (var player in room.players) {
+        if (player == socket.id) {
+            delete rooms[players[socket.id]].players[player]
         }
-        if (!Object.keys(room.players).length) {
-            delete rooms[room.id]
-        }
-        
-        delete players[socket.id]
-        
-        console.log('user disconnected with id: ' + socket.id)
-        //console.log(util.inspect(rooms, false, null, true))
+    }
+    if (!Object.keys(room.players).length) {
+        delete rooms[room.id]
+    }
+    
+    delete players[socket.id]
+    
+    console.log('user disconnected with id: ' + socket.id)
+    console.log(util.inspect(rooms, false, null, true))
 }
 
 function drawCard (socket) {
     var room = rooms[players[socket.id]]
     if (room.deck.length > 0) {
         let drawnCard = room.deck.pop()
-        socket.emit('drawnCard', drawnCard)
         room.players[socket.id].push(drawnCard)
-    } else {
+        socket.emit('drawnCard', drawnCard)
+        updateCardCount(room)
         socket.emit('deckEmpty')
     }
 }
@@ -137,4 +138,13 @@ function playCards (socket, cards) {
         topCard = card
     }
     io.to(room.id).emit('playedCards', room.pile)
+    updateCardCount(room)
+}
+
+function updateCardCount (room) {
+    var playerCardCounts = {}
+    for (let [player, count] of Object.entries(room.players)) {
+        playerCardCounts[player] = count.length
+    }
+    io.to(room.id).emit('playerCardCounts', playerCardCounts)
 }
