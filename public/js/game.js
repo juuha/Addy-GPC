@@ -108,8 +108,8 @@ function create() {
                 let cardsToEmit = []
                 game.selected.forEach(card => {
                     cardsToEmit.push({name: card.name, value: card.value})
-                    const indexHand = game.hand.indexOf(card)
-                    game.hand.splice(indexHand, 1)
+                    const indexOfCard = game.hand.indexOf(card)
+                    game.hand.splice(indexOfCard, 1)
                     card.destroy()
                 })
                 game.socket.emit('playCards', cardsToEmit)
