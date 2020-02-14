@@ -85,6 +85,15 @@ function create() {
         }
     })
     
+    game.socket.on('playSuccess', function () {
+        game.selected.forEach(card => {
+            const indexOfCard = game.hand.indexOf(card)
+            game.hand.splice(indexOfCard, 1)
+            card.destroy()
+        })
+        game.selected = []
+    })
+
     var drawCardButton = this.add.image(690, 280, 'deck')
     drawCardButton.setInteractive()
     
@@ -113,26 +122,12 @@ function create() {
     
     playCardButton.on('pointerup', function (pointer) {
         if (game.selected.length) {
-            var sum = 0
-            game.selected.forEach(card => {
-                sum += card.value
-            })
             // Check is only done locally
-            if (sum % 10 === game.pile[game.pile.length - 1].value % 10) {
-                let cardsToEmit = []
-                game.selected.forEach(card => {
-                    cardsToEmit.push({name: card.name, value: card.value})
-                    const indexOfCard = game.hand.indexOf(card)
-                    game.hand.splice(indexOfCard, 1)
-                    card.destroy()
-                })
-                game.socket.emit('playCards', cardsToEmit)
-                game.selected = []
-            } else {
-                console.log('sum:' +sum)
-                console.log('topcard:' + game.pile[game.pile.length - 1].value)
-                console.log('wrong sum')
-            }
+            let cardsToEmit = []
+            game.selected.forEach(card => {
+                cardsToEmit.push({name: card.name, value: card.value})
+            })
+            game.socket.emit('playCards', cardsToEmit)
         }
     })
 }

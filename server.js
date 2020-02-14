@@ -129,16 +129,27 @@ function drawCard (socket) {
 
 function playCards (socket, cards) {
     var room = rooms[players[socket.id]]
-    for (var card of cards) {
-        room.pile.push(card)
-        var indexOfPlayedCard = (room.players[socket.id].map(function(e) {
-            return e.name
-        }).indexOf(card.name))
-        room.players[socket.id].splice(indexOfPlayedCard, 1)
-        topCard = card
+    var sum = 0
+    cards.forEach(card => {
+        sum += card.value
+    })
+    if (sum % 10 === room.pile[room.pile.length - 1].value % 10) {
+        for (var card of cards) {
+            room.pile.push(card)
+            var indexOfPlayedCard = (room.players[socket.id].map(function(e) {
+                return e.name
+            }).indexOf(card.name))
+            if (indexOfPlayedCard) {
+                room.players[socket.id].splice(indexOfPlayedCard, 1)
+            } else {
+                socket.emit('cheater')
+                return
+            }
+        }
+        io.to(room.id).emit('playedCards', room.pile)
+        socket.emit('playSuccess', cards)
+        updateCardCount(room)
     }
-    io.to(room.id).emit('playedCards', room.pile)
-    updateCardCount(room)
 }
 
 function updateCardCount (room) {
