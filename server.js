@@ -30,7 +30,7 @@ io.on('connection', async function (socket) {
     socket.on('disconnect', function () {
         disconnect(socket)
     })
-    //console.log(util.inspect(rooms, false, null, true))
+    console.log(util.inspect(rooms, false, null, true))
 })
 
 server.listen(8081, function () {
@@ -52,7 +52,7 @@ function newSocket (socket) {
     for (var room of Object.values(rooms)) {
         if (room.joinable) {
             roomFound = 1
-            let player = {id: socket.id, turn: room.players.length}
+            let player = {id: socket.id}
             player.hand = []
             for (var j = 0; j < 7; j++) {
                 player.hand.push(room.deck.pop())
@@ -86,7 +86,7 @@ function newSocket (socket) {
         }
         newRoom.deck = shuffle(newRoom.deck)
         newRoom.pile.push(newRoom.deck.pop())
-        let newPlayer = {id: socket.id, turn: 0}
+        let newPlayer = {id: socket.id}
         newPlayer.hand = []
         for (let i = 0; i < 7; i++) {
             newPlayer.hand.push(newRoom.deck.pop())
@@ -126,14 +126,11 @@ function drawCard (socket) {
     if (room.deck.length > 0) {
         let drawnCard = room.deck.pop()
         room.players.find(function (player) {
-            //return player.id == socket.id
-            if (player.id == socket.id) {
-                player.hand.push(drawnCard)
-            }
-        })
-        //room.players[socket.id].push(drawnCard)
+            return player.id == socket.id 
+        }).hand.push(drawnCard)
         socket.emit('drawnCard', drawnCard)
         updateCardCount(room)
+    } else {
         socket.emit('deckEmpty')
     }
 }
@@ -154,7 +151,6 @@ function playCards (socket, cards) {
                 room.players.find(function (player) {
                     return player.id == socket.id
                 }).hand.splice(indexOfPlayedCard, 1)
-                //room.players[socket.id].splice(indexOfPlayedCard, 1)
             } else {
                 socket.emit('cheater')
                 return
