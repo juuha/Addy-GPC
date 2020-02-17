@@ -52,17 +52,19 @@ function newSocket (socket) {
     for (var room of Object.values(rooms)) {
         if (room.joinable) {
             roomFound = 1
-            room.players[socket.id] = []
+            let player = {id: socket.id, turn: room.players.length}
+            player.hand = []
             for (var j = 0; j < 7; j++) {
-                room.players[socket.id].push(room.deck.pop())
+                player.hand.push(room.deck.pop())
             }
             players[socket.id] = room.id
+            room.players.push(player)
             socket.join(room.id)
-            if (Object.keys(room.players).length == maxPlayers) {
+            if (room.players.length == maxPlayers) {
                 room.joinable = 0
             }
             updateCardCount(room)
-            socket.emit('cards', room.players[socket.id], room.pile)
+            socket.emit('cards', player.hand, room.pile)
             break
         }
     }
@@ -72,7 +74,7 @@ function newSocket (socket) {
             joinable: 1,
             deck: [],
             pile: [],
-            players: {}
+            players: []
         }
         
         for (let i = 1; i < 53; i++) {
@@ -84,29 +86,32 @@ function newSocket (socket) {
         }
         newRoom.deck = shuffle(newRoom.deck)
         newRoom.pile.push(newRoom.deck.pop())
-        newRoom.players[socket.id] = []
+        let newPlayer = {id: socket.id, turn: 0}
+        newPlayer.hand = []
         for (let i = 0; i < 7; i++) {
-            newRoom.players[socket.id].push(newRoom.deck.pop())
+            newPlayer.hand.push(newRoom.deck.pop())
         }
-        
+        newRoom.players.push(newPlayer)
         newRoom.id = id
         rooms[id] = newRoom
         socket.join(id)
         players[socket.id] = id
-        socket.emit('cards', newRoom.players[socket.id], newRoom.pile)
+        socket.emit('cards', newPlayer.hand, newRoom.pile)
         id++
     }
+    console.log(util.inspect(rooms, false, null, true))
 }
 
 function disconnect(socket) {
     var room = rooms[players[socket.id]]
     room.joinable = 1
-    for (var player in room.players) {
-        if (player == socket.id) {
-            delete rooms[players[socket.id]].players[player]
+    for (var player of room.players) {
+        if (player.id == socket.id) {
+            let indexOfPlayer = room.players.indexOf(player)
+            room.players.splice(indexOfPlayer, 1)
         }
     }
-    if (!Object.keys(room.players).length) {
+    if (!room.players.length) {
         delete rooms[room.id]
     }
     
@@ -120,7 +125,13 @@ function drawCard (socket) {
     var room = rooms[players[socket.id]]
     if (room.deck.length > 0) {
         let drawnCard = room.deck.pop()
-        room.players[socket.id].push(drawnCard)
+        room.players.find(function (player) {
+            //return player.id == socket.id
+            if (player.id == socket.id) {
+                player.hand.push(drawnCard)
+            }
+        })
+        //room.players[socket.id].push(drawnCard)
         socket.emit('drawnCard', drawnCard)
         updateCardCount(room)
         socket.emit('deckEmpty')
@@ -136,11 +147,14 @@ function playCards (socket, cards) {
     if (sum % 10 === room.pile[room.pile.length - 1].value % 10) {
         for (var card of cards) {
             room.pile.push(card)
-            var indexOfPlayedCard = (room.players[socket.id].map(function(e) {
-                return e.name
-            }).indexOf(card.name))
+            var indexOfPlayedCard = room.players.find(function (player) {
+                return player.id == socket.id
+            }).hand.indexOf(card.name)
             if (indexOfPlayedCard) {
-                room.players[socket.id].splice(indexOfPlayedCard, 1)
+                room.players.find(function (player) {
+                    return player.id == socket.id
+                }).hand.splice(indexOfPlayedCard, 1)
+                //room.players[socket.id].splice(indexOfPlayedCard, 1)
             } else {
                 socket.emit('cheater')
                 return
@@ -154,8 +168,8 @@ function playCards (socket, cards) {
 
 function updateCardCount (room) {
     var playerCardCounts = {}
-    for (let [player, count] of Object.entries(room.players)) {
-        playerCardCounts[player] = count.length
+    for (let player of room.players) {
+        playerCardCounts[player.id] = player.hand.length
     }
     io.to(room.id).emit('playerCardCounts', playerCardCounts)
 }
