@@ -23,9 +23,12 @@ game.hand = []
 game.opponentHand = []
 game.pile = []
 game.selected = []
+game.turn = 0
 const handPosY = 500
 const pilePosX = 300
 const pilePosY = 280
+const move = 30 // How much the cards in hand should move when hovered over
+
 
 function preload() {
     for (var i = 1; i < 53; i++) {
@@ -47,18 +50,34 @@ function create() {
             game.pile.push(card)
         }
     })
+    var deck = this.add.image(690, 280, 'cardBack')
+    deck.setInteractive()
+
+    // Updates the game on whose turn it is
+    // Called by server
+    game.socket.on('turnChange', function (nextTurnPlayerId) {
+        if (nextTurnPlayerId == game.socket.id) {
+            game.turn = 1
+        }
+    })
     
+    // Draws a card from the deck and places it in the hand
+    // Called by server
     game.socket.on('drawnCard', function (drawnCard) {
         let card = newCard(drawnCard, 900, handPosY, scene)
         game.hand.push(card)
     })
     
+    // Will inform player that there are no more cards in the deck
+    // Called by server
     game.socket.on('deckEmpty', function () {
         // TODO add alert ingame
         console.log('Deck is empty')
     })
     
-    // Runs when any player in the room plays cards
+    // Updates the pile to show recently played cards (currently only topmost)
+    // after a player has played cards.
+    // Called by server
     game.socket.on('playedCards', function (pile) {
         game.pile = []
         for (let pileCard of pile) {
@@ -66,9 +85,11 @@ function create() {
             card.setInteractive()
             game.pile.push(card)
         }
+        
     })
 
-    // Runs when you play cards
+    // Updates the cards in hand after a successful play
+    // Called by server
     game.socket.on('playSuccess', function () {
         game.selected.forEach(card => {
             const indexOfCard = game.hand.indexOf(card)
@@ -76,9 +97,11 @@ function create() {
             card.destroy()
         })
         game.selected = []
+        game.turn = 0
     })
     
     // Updates card counts for other plyers
+    // Called by server
     game.socket.on('playerCardCounts', function (playerCardCounts) {
         for (var [player, count] of Object.entries(playerCardCounts)) {
             if (game.socket.id != player) {
@@ -96,28 +119,28 @@ function create() {
         }
     })
     
-    var drawCardButton = this.add.image(690, 280, 'cardBack')
-    drawCardButton.setInteractive()
-    
-    // Runs when hovering over a game object
+    // Emits 'hovered' when a game object is hovered by the pointer
     this.input.on('pointerover', function (pointer, gameObject)
     {           
         gameObject[0].emit('hovered', gameObject[0])
     }, this)
 
-    // Runs when the pointer stops hovering a game object
+    // Emits 'hoveredout' when a game object stops being hovered by the pointer
     this.input.on('pointerout', function (pointer, gameObject) {
         gameObject[0].emit('hoveredout', gameObject[0])
     }, this)
     
-    // When clicking any object (up portion of click)
+    // Emits 'clicked' when a game object is clicked
+    // Won't emit if it is not the player's turn
     this.input.on('pointerup', function (pointer, gameObject) {
+        if (!game.turn) return
         if (!gameObject[0]) return
         gameObject[0].emit('clicked', gameObject[0])
     }, this)
     
-    // When clicking draw button
-    drawCardButton.on('pointerup', function (pointer) {
+    // Emits 'drawCard' when clicking (up portion of click) the deck
+    deck.on('pointerup', function (pointer) {
+        if (!game.turn) return
         game.socket.emit('drawCard')
     }, this)
 }
@@ -153,23 +176,23 @@ function update() {
     //game.input.activePointer.dirty = true
 }
 
-var move = 30
-
-// Handles what happens to objcets hovered over by pointer (hand)
+// Handler for when 'hovered' event is emitted
+// Moves the card in hand up, so it's easier to see
 function hoverOverHandler (card) {
     if (game.hand.includes(card) && !game.selected.includes(card)) {
         card.y = handPosY - move
     }
 }
 
-// Handles what happens to objects no longer hovered over by pointer (hand)
+// Handler for when 'hoveredout' event is emitted
+// Moves the card back down to the regular level in hand
 function hoverOutHandler (card) {
     if (game.hand.includes(card) && !game.selected.includes(card)) {
         card.y = handPosY
     }
 }
 
-// Handles what happens to objects when they are clicked on (hand & pile)
+// Handler for when either the deck or a card in hand is clicked
 function clickHandler (card) {
     if (game.hand.includes(card)) {
         if (game.selected.includes(card)) {

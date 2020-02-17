@@ -30,7 +30,7 @@ io.on('connection', async function (socket) {
     socket.on('disconnect', function () {
         disconnect(socket)
     })
-    console.log(util.inspect(rooms, false, null, true))
+    //console.log(util.inspect(rooms, false, null, true))
 })
 
 server.listen(8081, function () {
@@ -63,6 +63,8 @@ function newSocket (socket) {
             if (room.players.length == maxPlayers) {
                 room.joinable = 0
             }
+            let nextTurnPlayerId = room.players[room.turn].id
+            io.to(room.id).emit('turnChange', nextTurnPlayerId)
             updateCardCount(room)
             socket.emit('cards', player.hand, room.pile)
             break
@@ -70,6 +72,7 @@ function newSocket (socket) {
     }
     if (!roomFound) {
         let newRoom = {
+            turn: 0,
             id: 0,
             joinable: 1,
             deck: [],
@@ -96,10 +99,11 @@ function newSocket (socket) {
         rooms[id] = newRoom
         socket.join(id)
         players[socket.id] = id
+        let nextTurnPlayerId = newRoom.players[newRoom.turn].id
+        io.to(id).emit('turnChange', nextTurnPlayerId)
         socket.emit('cards', newPlayer.hand, newRoom.pile)
         id++
     }
-    console.log(util.inspect(rooms, false, null, true))
 }
 
 function disconnect(socket) {
@@ -118,7 +122,6 @@ function disconnect(socket) {
     delete players[socket.id]
     
     console.log('user disconnected with id: ' + socket.id)
-    console.log(util.inspect(rooms, false, null, true))
 }
 
 function drawCard (socket) {
@@ -151,13 +154,16 @@ function playCards (socket, cards) {
                 room.players.find(function (player) {
                     return player.id == socket.id
                 }).hand.splice(indexOfPlayedCard, 1)
-            } else {
-                socket.emit('cheater')
-                return
             }
         }
+        room.turn++
+        if (room.turn > room.players.length -1 ) {
+            room.turn = 0
+        }
+        let nextTurnPlayerId = room.players[room.turn].id
         io.to(room.id).emit('playedCards', room.pile)
         socket.emit('playSuccess', cards)
+        io.to(room.id).emit('turnChange', nextTurnPlayerId)
         updateCardCount(room)
     }
 }
