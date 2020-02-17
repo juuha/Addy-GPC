@@ -174,6 +174,12 @@ function playCards (socket, cards) {
         socket.emit('playSuccess', cards)
         io.to(room.id).emit('turnChange', nextTurnPlayerId)
         updateCardCount(room)
+
+        if (room.players.find(function (player) {
+            return player.id == socket.id
+        }).hand.length == 0) {
+            io.to(room.id).emit('gameOver', socket.id)
+        }
     }
 }
 

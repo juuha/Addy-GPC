@@ -125,6 +125,15 @@ function create() {
             }
         }
     })
+
+    game.socket.on('gameOver', function (socketId) {
+        // TODO add GAME OVER screen
+        if (socketId == game.socket.id) {
+            console.log('You win!')
+        } else {
+            console.log('You lose!')
+        }
+    })
     
     // Emits 'hovered' when a game object is hovered by the pointer
     this.input.on('pointerover', function (pointer, gameObject)
