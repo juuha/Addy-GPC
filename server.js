@@ -126,6 +126,7 @@ function disconnect(socket) {
 
 function drawCard (socket) {
     var room = rooms[players[socket.id]]
+    if (room.players[room.turn] != socket.id) return
     if (room.deck.length > 0) {
         let drawnCard = room.deck.pop()
         room.players.find(function (player) {
@@ -140,6 +141,7 @@ function drawCard (socket) {
 
 function playCards (socket, cards) {
     var room = rooms[players[socket.id]]
+    if (room.players[room.turn] != socket.id) return
     var sum = 0
     cards.forEach(card => {
         sum += card.value
