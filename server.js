@@ -72,9 +72,10 @@ function newSocket (socket) {
     }
     if (!roomFound) {
         let newRoom = {
-            turn: 0,
             id: 0,
             joinable: 1,
+            turn: 0,
+            drawn: 0,
             deck: [],
             pile: [],
             players: []
@@ -126,12 +127,17 @@ function disconnect(socket) {
 
 function drawCard (socket) {
     var room = rooms[players[socket.id]]
-    if (room.players[room.turn] != socket.id) return
+    if (room.players[room.turn].id != socket.id) return
+    if (room.drawn >= 3) {
+        socket.emit('drewThreeAlready')
+        return
+    }
     if (room.deck.length > 0) {
         let drawnCard = room.deck.pop()
         room.players.find(function (player) {
             return player.id == socket.id 
         }).hand.push(drawnCard)
+        room.drawn++
         socket.emit('drawnCard', drawnCard)
         updateCardCount(room)
     } else {
@@ -141,7 +147,7 @@ function drawCard (socket) {
 
 function playCards (socket, cards) {
     var room = rooms[players[socket.id]]
-    if (room.players[room.turn] != socket.id) return
+    if (room.players[room.turn].id != socket.id) return
     var sum = 0
     cards.forEach(card => {
         sum += card.value
@@ -162,6 +168,7 @@ function playCards (socket, cards) {
         if (room.turn > room.players.length -1 ) {
             room.turn = 0
         }
+        room.drawn = 0
         let nextTurnPlayerId = room.players[room.turn].id
         io.to(room.id).emit('playedCards', room.pile)
         socket.emit('playSuccess', cards)

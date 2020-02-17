@@ -74,6 +74,13 @@ function create() {
         // TODO add alert ingame
         console.log('Deck is empty')
     })
+
+    // Will inform player they already drew 3 cards from the deck
+    // Called by server
+    game.socket.on('drewThreeAlready', function () {
+        // TODO add alert ingame
+        console.log('You already drew 3')
+    })
     
     // Updates the pile to show recently played cards (currently only topmost)
     // after a player has played cards.
