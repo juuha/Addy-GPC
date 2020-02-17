@@ -55,19 +55,20 @@ function create() {
         let card = newCard(drawnCard, 900, handPosY, scene)
         game.hand.push(card)
     })
-
+    
     game.socket.on('deckEmpty', function () {
         console.log('Deck is empty')
     })
-
+    
     game.socket.on('playedCards', function (pile) {
         game.pile = []
         for (let pileCard of pile) {
             var card = newCard(pileCard, pilePosX, pilePosY, scene)
-            game.pile.push(card)            
+            card.setInteractive()
+            game.pile.push(card)
         }
     })
-
+    
     game.socket.on('playerCardCounts', function (playerCardCounts) {
         for (var [player, count] of Object.entries(playerCardCounts)) {
             if (game.socket.id != player) {
@@ -93,12 +94,12 @@ function create() {
         })
         game.selected = []
     })
-
+    
     var drawCardButton = this.add.image(690, 280, 'deck')
     drawCardButton.setInteractive()
     
-    var playCardButton = this.add.image(690, 380, 'button')
-    playCardButton.setInteractive()
+    /*var playCardButton = this.add.image(690, 380, 'button')
+    playCardButton.setInteractive() */
     
     this.input.on('pointerover', function (pointer, gameObject)
     {           
@@ -120,7 +121,7 @@ function create() {
         game.socket.emit('drawCard')
     }, this)
     
-    playCardButton.on('pointerup', function (pointer) {
+    /*playCardButton.on('pointerup', function (pointer) {
         if (game.selected.length) {
             // Check is only done locally
             let cardsToEmit = []
@@ -129,7 +130,7 @@ function create() {
             })
             game.socket.emit('playCards', cardsToEmit)
         }
-    })
+    })*/
 }
 
 function update() {
@@ -178,17 +179,28 @@ function hoverOutHandler (card) {
 }
 
 function clickHandler (card) {
-    if (game.selected.includes(card)) {
-        const index = game.selected.indexOf(card)
-        if (index > -1) {
-            game.selected.splice(index, 1)
-            card.y = handPosY
+    if (game.hand.includes(card)) {
+        if (game.selected.includes(card)) {
+            const index = game.selected.indexOf(card)
+            if (index > -1) {
+                game.selected.splice(index, 1)
+                card.y = handPosY
+            }
+        } else {
+            if (game.selected.length > 2) return
+            console.log('added ' + card.name + ' with value ' + card.value)
+            game.selected.push(card)
+            card.y = handPosY - move
         }
     } else {
-        if (game.selected.length > 2) return
-        console.log('added ' + card.name + ' with value ' + card.value)
-        game.selected.push(card)
-        card.y = handPosY - move
+        if (game.selected.length) {
+            // Check is only done locally
+            let cardsToEmit = []
+            game.selected.forEach(card => {
+                cardsToEmit.push({name: card.name, value: card.value})
+            })
+            game.socket.emit('playCards', cardsToEmit)
+        }
     }
 }
 
@@ -200,6 +212,6 @@ function newCard (givenCard, posX, posY, scene) {
     card.on('hovered', hoverOverHandler)
     card.on('hoveredout', hoverOutHandler, this)
     card.on('clicked', clickHandler, this)
-
+    
     return card
 }
