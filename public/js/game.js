@@ -33,8 +33,6 @@ function preload() {
         this.load.image('card' +i, 'assets/' + i + '.png')
     }
     this.load.image('deck', 'assets/blue.png')
-    //TODO: change play button sprite
-    this.load.image('button', 'assets/red.png')
 }
 
 function create() {
@@ -98,9 +96,6 @@ function create() {
     var drawCardButton = this.add.image(690, 280, 'deck')
     drawCardButton.setInteractive()
     
-    /*var playCardButton = this.add.image(690, 380, 'button')
-    playCardButton.setInteractive() */
-    
     this.input.on('pointerover', function (pointer, gameObject)
     {           
         gameObject[0].emit('hovered', gameObject[0])
@@ -120,17 +115,6 @@ function create() {
     drawCardButton.on('pointerup', function (pointer) {
         game.socket.emit('drawCard')
     }, this)
-    
-    /*playCardButton.on('pointerup', function (pointer) {
-        if (game.selected.length) {
-            // Check is only done locally
-            let cardsToEmit = []
-            game.selected.forEach(card => {
-                cardsToEmit.push({name: card.name, value: card.value})
-            })
-            game.socket.emit('playCards', cardsToEmit)
-        }
-    })*/
 }
 
 function update() {
@@ -194,7 +178,6 @@ function clickHandler (card) {
         }
     } else {
         if (game.selected.length) {
-            // Check is only done locally
             let cardsToEmit = []
             game.selected.forEach(card => {
                 cardsToEmit.push({name: card.name, value: card.value})
