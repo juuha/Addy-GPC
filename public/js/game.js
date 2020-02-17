@@ -58,6 +58,7 @@ function create() {
         console.log('Deck is empty')
     })
     
+    // Runs when any player in the room plays cards
     game.socket.on('playedCards', function (pile) {
         game.pile = []
         for (let pileCard of pile) {
@@ -66,7 +67,18 @@ function create() {
             game.pile.push(card)
         }
     })
+
+    // Runs when you play cards
+    game.socket.on('playSuccess', function () {
+        game.selected.forEach(card => {
+            const indexOfCard = game.hand.indexOf(card)
+            game.hand.splice(indexOfCard, 1)
+            card.destroy()
+        })
+        game.selected = []
+    })
     
+    // Updates card counts for other plyers
     game.socket.on('playerCardCounts', function (playerCardCounts) {
         for (var [player, count] of Object.entries(playerCardCounts)) {
             if (game.socket.id != player) {
@@ -84,28 +96,21 @@ function create() {
         }
     })
     
-    game.socket.on('playSuccess', function () {
-        game.selected.forEach(card => {
-            const indexOfCard = game.hand.indexOf(card)
-            game.hand.splice(indexOfCard, 1)
-            card.destroy()
-        })
-        game.selected = []
-    })
-    
     var drawCardButton = this.add.image(690, 280, 'cardBack')
     drawCardButton.setInteractive()
     
+    // Runs when hovering over a game object
     this.input.on('pointerover', function (pointer, gameObject)
     {           
         gameObject[0].emit('hovered', gameObject[0])
     }, this)
-    
+
+    // Runs when the pointer stops hovering a game object
     this.input.on('pointerout', function (pointer, gameObject) {
         gameObject[0].emit('hoveredout', gameObject[0])
     }, this)
     
-    // When clicking any object
+    // When clicking any object (up portion of click)
     this.input.on('pointerup', function (pointer, gameObject) {
         if (!gameObject[0]) return
         gameObject[0].emit('clicked', gameObject[0])
@@ -150,18 +155,21 @@ function update() {
 
 var move = 30
 
+// Handles what happens to objcets hovered over by pointer (hand)
 function hoverOverHandler (card) {
     if (game.hand.includes(card) && !game.selected.includes(card)) {
         card.y = handPosY - move
     }
 }
 
+// Handles what happens to objects no longer hovered over by pointer (hand)
 function hoverOutHandler (card) {
     if (game.hand.includes(card) && !game.selected.includes(card)) {
         card.y = handPosY
     }
 }
 
+// Handles what happens to objects when they are clicked on (hand & pile)
 function clickHandler (card) {
     if (game.hand.includes(card)) {
         if (game.selected.includes(card)) {
@@ -187,6 +195,7 @@ function clickHandler (card) {
     }
 }
 
+// Creates game object with properties relating to the givenCard
 function newCard (givenCard, posX, posY, scene) {
     let card = scene.physics.add.image(posX, posY, 'card'+givenCard.name)
     card.name = givenCard.name
