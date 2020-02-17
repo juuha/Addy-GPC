@@ -27,7 +27,10 @@ game.turn = 0
 const handPosY = 500
 const pilePosX = 300
 const pilePosY = 280
+const deckPosX = 690
+const deckPosY = 280
 const move = 30 // How much the cards in hand should move when hovered over
+var deck
 
 
 function preload() {
@@ -35,6 +38,7 @@ function preload() {
         this.load.image('card' +i, 'assets/' + i + '.png')
     }
     this.load.image('cardBack', 'assets/blue.png')
+    this.load.image('cardBackRed', 'assets/red.png')
 }
 
 function create() {
@@ -50,7 +54,7 @@ function create() {
             game.pile.push(card)
         }
     })
-    var deck = this.add.image(690, 280, 'cardBack')
+    deck = this.add.image(deckPosX, deckPosY, 'cardBackRed')
     deck.setInteractive()
 
     // Updates the game on whose turn it is
@@ -58,20 +62,27 @@ function create() {
     game.socket.on('turnChange', function (nextTurnPlayerId) {
         if (nextTurnPlayerId == game.socket.id) {
             game.turn = 1
+            deck.setTexture('cardBack')
+        } else {
+            deck.setTexture('cardBackRed')
         }
     })
     
     // Draws a card from the deck and places it in the hand
     // Called by server
-    game.socket.on('drawnCard', function (drawnCard) {
+    game.socket.on('drawnCard', function (drawnCard, drawnThree) {
         let card = newCard(drawnCard, 900, handPosY, scene)
         game.hand.push(card)
+        if (drawnThree) {
+            deck.setTexture('cardBackRed')
+        }
     })
     
     // Will inform player that there are no more cards in the deck
     // Called by server
     game.socket.on('deckEmpty', function () {
         // TODO add alert ingame
+        deck.setTexture('cardBackRed')
         console.log('Deck is empty')
     })
 

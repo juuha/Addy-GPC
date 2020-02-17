@@ -138,7 +138,7 @@ function drawCard (socket) {
             return player.id == socket.id 
         }).hand.push(drawnCard)
         room.drawn++
-        socket.emit('drawnCard', drawnCard)
+        socket.emit('drawnCard', drawnCard, (room.drawn == 3))
         updateCardCount(room)
     } else {
         socket.emit('deckEmpty')
