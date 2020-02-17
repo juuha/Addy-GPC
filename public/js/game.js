@@ -19,7 +19,6 @@ var config = {
 
 var game = new Phaser.Game(config)
 
-game.deck = []
 game.hand = []
 game.opponentHand = []
 game.pile = []
@@ -32,7 +31,7 @@ function preload() {
     for (var i = 1; i < 53; i++) {
         this.load.image('card' +i, 'assets/' + i + '.png')
     }
-    this.load.image('deck', 'assets/blue.png')
+    this.load.image('cardBack', 'assets/blue.png')
 }
 
 function create() {
@@ -55,6 +54,7 @@ function create() {
     })
     
     game.socket.on('deckEmpty', function () {
+        // TODO add alert ingame
         console.log('Deck is empty')
     })
     
@@ -77,7 +77,7 @@ function create() {
                 }
                 game.opponentHand = []
                 for (let i = 0; i < count; i++) {
-                    let card = scene.add.image(48, 100, 'deck')
+                    let card = scene.add.image(48, 100, 'cardBack')
                     game.opponentHand.push(card)
                 }
             }
@@ -93,7 +93,7 @@ function create() {
         game.selected = []
     })
     
-    var drawCardButton = this.add.image(690, 280, 'deck')
+    var drawCardButton = this.add.image(690, 280, 'cardBack')
     drawCardButton.setInteractive()
     
     this.input.on('pointerover', function (pointer, gameObject)
