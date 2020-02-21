@@ -26,6 +26,10 @@ io.on('connection', async function (socket) {
     socket.on('playCards', function (cards) {
         playCards(socket, cards)
     })
+
+    socket.on('endTurn', function () {
+        endTurn(socket)
+    })
     
     socket.on('disconnect', function () {
         disconnect(socket)
@@ -181,6 +185,18 @@ function playCards (socket, cards) {
             io.to(room.id).emit('gameOver', socket.id)
         }
     }
+}
+
+function endTurn (socket) {
+    var room = rooms[players[socket.id]]
+    if (room.players[room.turn].id != socket.id) return
+    room.turn++
+    if (room.turn > room.players.length -1 ) {
+        room.turn = 0
+    }
+    room.drawn = 0
+    let nextTurnPlayerId = room.players[room.turn].id
+    io.to(room.id).emit('turnChange', nextTurnPlayerId)
 }
 
 function updateCardCount (room) {

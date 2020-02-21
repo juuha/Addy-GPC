@@ -14,6 +14,7 @@ class GameScene extends Phaser.Scene {
         this.pile = []
         this.turn = 0
         this.deck
+        this.skip
     }
     
     preload() {
@@ -23,6 +24,7 @@ class GameScene extends Phaser.Scene {
         }
         this.load.image('cardBack', 'assets/blue.png')
         this.load.image('cardBackRed', 'assets/red.png')
+        this.load.image('skipButton', 'assets/skip.png')
     }
     
     create() {
@@ -41,6 +43,9 @@ class GameScene extends Phaser.Scene {
         })
         this.deck = this.add.image(deckPosX, deckPosY, 'cardBackRed')
         this.deck.setInteractive()
+        this.skip = this.add.image(deckPosX, deckPosY +90, 'skipButton')
+        this.skip.setInteractive()
+        this.skip.setVisible(false)
         
         // Updates the game on whose turn it is
         // Called by server
@@ -49,6 +54,8 @@ class GameScene extends Phaser.Scene {
                 this.turn = 1
                 this.deck.setTexture('cardBack')
             } else {
+                this.turn = 0
+                this.selected = []
                 this.deck.setTexture('cardBackRed')
             }
         })
@@ -60,6 +67,7 @@ class GameScene extends Phaser.Scene {
             this.hand.push(card)
             if (drawnThree) {
                 this.deck.setTexture('cardBackRed')
+                this.skip.setVisible(true)                
             }
         })
         
@@ -99,8 +107,6 @@ class GameScene extends Phaser.Scene {
                 this.hand.splice(indexOfCard, 1)
                 card.destroy()
             })
-            this.selected = []
-            this.turn = 0
         })
         
         // Updates card counts for other plyers
@@ -154,6 +160,11 @@ class GameScene extends Phaser.Scene {
             if (!this.turn) return
             this.socket.emit('drawCard')
         }, this)
+        
+        this.skip.on('pointerup', (pointer) => {
+            this.socket.emit('endTurn')
+            this.skip.setVisible(false)
+        })
     }
     
     update() {
