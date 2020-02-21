@@ -42,9 +42,9 @@ class GameScene extends Phaser.Scene {
             }
         })
         this.deck = this.add.image(deckPosX, deckPosY, 'cardBackRed')
-        this.deck.setInteractive()
+        this.deck.setInteractive({ useHandCursor: true })
         this.skip = this.add.image(deckPosX, deckPosY +90, 'skipButton')
-        this.skip.setInteractive()
+        this.skip.setInteractive({ useHandCursor: true })
         this.skip.setVisible(false)
         
         // Updates the game on whose turn it is
@@ -93,7 +93,7 @@ class GameScene extends Phaser.Scene {
             this.pile = []
             for (let pileCard of newPile) {
                 const card = this.newCard(pileCard, pilePosX, pilePosY, scene)
-                card.setInteractive()
+                card.setInteractive({ useHandCursor: true })
                 this.pile.push(card)
             }
             
@@ -247,7 +247,7 @@ class GameScene extends Phaser.Scene {
         let card = scene.physics.add.image(posX, posY, 'card'+givenCard.name)
         card.name = givenCard.name
         card.value = givenCard.value
-        card.setInteractive()
+        card.setInteractive({ useHandCursor: true })
         card.on('hovered', this.hoverOverHandler)
         card.on('hoveredout', this.hoverOutHandler, this)
         card.on('clicked', this.clickHandler, this)
