@@ -175,6 +175,14 @@ function drawCard (socket) {
         room.drawn++
         socket.emit('drawnCard', drawnCard, (room.drawn == 3))
         updateCardCount(room)
+    } else if (shufflePileIntoDeck(room)) {
+        let drawnCard = room.deck.pop()
+        room.players.find(function (player) {
+            return player.id == socket.id 
+        }).hand.push(drawnCard)
+        room.drawn++
+        socket.emit('drawnCard', drawnCard, (room.drawn == 3))
+        updateCardCount(room)
     } else {
         socket.emit('deckEmpty')
     }
