@@ -29,7 +29,7 @@ class GameScene extends Phaser.Scene {
         this.load.image('cardBack', 'assets/blue.png')
         this.load.image('cardBackRed', 'assets/red.png')
         this.load.image('skipButton', 'assets/skip.png')
-        this.load.image('playButton', 'assets/Play.png')
+        this.load.image('playButton', 'assets/play.png')
     }
     
     create() {
