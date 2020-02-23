@@ -1,9 +1,12 @@
-const handPosY = 500
-const pilePosX = 300
-const pilePosY = 280
-const deckPosX = 690
-const deckPosY = 280
+const handY = 500
+const pileX = 300
+const pileY = 280
+const deckX = 690
+const deckY = 280
+const playCardsButtonX = 100
+const playCardsButtonY = 280
 const move = 30 // How much the cards in hand should move when hovered over
+const handMinX = 32
 
 class GameScene extends Phaser.Scene {
     constructor() {
@@ -15,6 +18,7 @@ class GameScene extends Phaser.Scene {
         this.turn = 0
         this.deck
         this.skip
+        this.playCardsButton
     }
     
     preload() {
@@ -33,29 +37,34 @@ class GameScene extends Phaser.Scene {
         this.socket = io()
         this.socket.on('cards', (hand, pile) => {
             for (var handCard of hand) {
-                let card = this.newCard(handCard, 900, handPosY, scene)
+                let card = this.newCard(handCard, 900, handY, scene)
                 this.hand.push(card)
             }
             for (var pileCard of pile) {
-                let card = this.newCard(pileCard, pilePosX, pilePosY, scene)
+                let card = this.newCard(pileCard, pileX, pileY, scene)
                 this.pile.push(card)
             }
         })
-        this.deck = this.add.image(deckPosX, deckPosY, 'cardBackRed')
+        this.deck = this.add.image(deckX, deckY, 'cardBackRed')
         this.deck.setInteractive({ useHandCursor: true })
-        this.skip = this.add.image(deckPosX, deckPosY +90, 'skipButton')
+        this.skip = this.add.image(deckX, deckY +90, 'skipButton')
         this.skip.setInteractive({ useHandCursor: true })
         this.skip.setVisible(false)
+        this.playCardsButton = this.add.image(playCardsButtonX, playCardsButtonY, 'cardBackRed')
+        this.playCardsButton.setInteractive({ useHandCursor: true })
+        this.playCardsButton.setVisible(false)
         
         // Updates the game on whose turn it is
         // Called by server
         this.socket.on('turnChange', (nextTurnPlayerId) => {
+            this.selected = []
+            this.playCardsButton.setVisible(false)
+            this.skip.setVisible(false)
             if (nextTurnPlayerId == this.socket.id) {
                 this.turn = 1
                 this.deck.setTexture('cardBack')
             } else {
                 this.turn = 0
-                this.selected = []
                 this.deck.setTexture('cardBackRed')
             }
         })
@@ -63,8 +72,18 @@ class GameScene extends Phaser.Scene {
         // Draws a card from the deck and places it in the hand
         // Called by server
         this.socket.on('drawnCard', (drawnCard, drawnThree) => {
-            const card = this.newCard(drawnCard, 900, handPosY, scene)
-            this.hand.push(card)
+            const card = this.newCard(drawnCard, deckX, deckY, scene)
+            var addX = Math.min(32, 720 / (this.hand.length))
+            var targetX = 48 + (this.hand.length) * addX
+            card.setDepth(this.hand.length)
+            this.physics.moveTo(card, targetX, 500, 0, 100)
+            this.time.addEvent({delay: 100, callback: () => {
+                card.body.stop()
+                this.hand.push(card)
+                card.x = targetX
+                card.y = 500
+            }, callbackScope: this})
+            
             if (drawnThree) {
                 this.deck.setTexture('cardBackRed')
                 this.skip.setVisible(true)                
@@ -92,7 +111,7 @@ class GameScene extends Phaser.Scene {
         this.socket.on('playedCards', (newPile) => {
             this.pile = []
             for (let pileCard of newPile) {
-                const card = this.newCard(pileCard, pilePosX, pilePosY, scene)
+                const card = this.newCard(pileCard, pileX, pileY, scene)
                 card.setInteractive({ useHandCursor: true })
                 this.pile.push(card)
             }
@@ -102,10 +121,19 @@ class GameScene extends Phaser.Scene {
         // Updates the cards in hand after a successful play
         // Called by server
         this.socket.on('playSuccess', () => {
+            var depth = 1
             this.selected.forEach(card => {
                 const indexOfCard = this.hand.indexOf(card)
                 this.hand.splice(indexOfCard, 1)
-                card.destroy()
+                card.depth = this.pile.length + depth
+                depth++
+                this.physics.moveTo(card, pileX, pileY, 0, 100)
+                this.time.addEvent({ delay: 100, callback: () => {
+                    card.body.stop()
+                    card.x = pileX
+                    card.y = pileY
+                    card.destroy()
+                }, callbackScope: this })
             })
         })
         
@@ -114,10 +142,8 @@ class GameScene extends Phaser.Scene {
         this.socket.on('playerCardCounts', (playerCardCounts) => {
             for (var [player, count] of Object.entries(playerCardCounts)) {
                 if (this.socket.id != player) {
-                    // TODO Destroy instead of move out of sight
                     for (let card of this.opponentHand) {
-                        card.x = 5000
-                        card.y = 5000
+                        card.destroy()
                     }
                     this.opponentHand = []
                     for (let i = 0; i < count; i++) {
@@ -165,22 +191,24 @@ class GameScene extends Phaser.Scene {
             this.socket.emit('endTurn')
             this.skip.setVisible(false)
         })
+        
+        this.playCardsButton.on('pointerup', (pointer) => {
+            this.playCards()
+        })
     }
     
     update() {
-        console.log('updating')
         var handPosX = 48
-        const handMinX = 32
-        var handAdd = Math.min(handMinX, 800 / this.hand.length ? 720 / this.hand.length : handMinX * 2)
+        var handAdd = Math.min(handMinX, 720 / this.hand.length)
         for(let i = 0; i < this.hand.length; i++) {        
             let card = this.hand[i]
             card.setDepth(i)
             card.x = handPosX
             handPosX += handAdd
         }
+        
         var oppHandPosX = 48
-        const oppHandMinX = 32
-        var oppHandAdd = Math.min(oppHandMinX, 800 / this.opponentHand.length ? 720 / this.opponentHand.length : oppHandMinX * 2)
+        var oppHandAdd = Math.min(handMinX, 720 / this.opponentHand.length)
         for (let i = 0; i < this.opponentHand.length; i++) {
             let card = this.opponentHand[i]
             card.setDepth(i)
@@ -192,8 +220,8 @@ class GameScene extends Phaser.Scene {
             for(let i = 0; i < this.pile.length; i++) {        
                 let pileCard = this.pile[i]
                 pileCard.setDepth(i)
-                pileCard.x = pilePosX
-                pileCard.y = pilePosY
+                pileCard.x = pileX
+                pileCard.y = pileY
             }
         }
         
@@ -203,7 +231,7 @@ class GameScene extends Phaser.Scene {
     // Moves the card in hand up, so it's easier to see
     hoverOverHandler = (card) => {
         if (this.hand.includes(card) && !this.selected.includes(card)) {
-            card.y = handPosY - move
+            card.y = handY - move
         }
     }
     
@@ -211,7 +239,7 @@ class GameScene extends Phaser.Scene {
     // Moves the card back down to the regular level in hand
     hoverOutHandler = (card) => {
         if (this.hand.includes(card) && !this.selected.includes(card)) {
-            card.y = handPosY
+            card.y = handY
         }
     }
     
@@ -222,22 +250,40 @@ class GameScene extends Phaser.Scene {
                 const index = this.selected.indexOf(card)
                 if (index > -1) {
                     this.selected.splice(index, 1)
-                    card.y = handPosY
+                    card.y = handY
                 }
             } else {
                 if (this.selected.length > 2) return
                 console.log('added ' + card.name + ' with value ' + card.value)
                 this.selected.push(card)
-                card.y = handPosY - move
+                card.y = handY - move
             }
+            this.canPlayCheck()
         } else {
-            if (this.selected.length) {
-                let cardsToEmit = []
-                this.selected.forEach(card => {
-                    cardsToEmit.push({name: card.name, value: card.value})
-                })
-                this.socket.emit('playCards', cardsToEmit)
-            }
+            this.playCards()
+        }
+    }
+    
+    playCards = () => {
+        if (this.selected.length) {
+            let cardsToEmit = []
+            this.selected.forEach(card => {
+                cardsToEmit.push({name: card.name, value: card.value})
+            })
+            this.socket.emit('playCards', cardsToEmit)
+        }
+    }
+    
+    canPlayCheck = () => {
+        var sum = 0
+        for (var card of this.selected) {
+            sum += card.value
+            console.log(card.name + " : " + card.value)
+        }
+        if (sum % 10 == this.pile[this.pile.length -1].value % 10) {
+            this.playCardsButton.setVisible(true)
+        } else {
+            this.playCardsButton.setVisible(false)
         }
     }
     
