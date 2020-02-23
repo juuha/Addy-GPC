@@ -18,18 +18,39 @@ class TitleScene extends Phaser.Scene {
         this.add.image(400, 135, 'logo')
         
         var start = this.add.image(0,0, 'button').setOrigin(0,0)
-        var startText = this.add.text(30, 10, 'START', {fontFamily: 'Arial', fontSize: 25})
-        var rules = this.add.image(0, 55, 'button').setOrigin(0,0)
-        var rulesText = this.add.text(30, 65, 'RULES', {fontFamily: 'Arial', fontSize: 25})
-        var settings = this.add.image(0, 110, 'button').setOrigin(0,0)
-        var settingsText = this.add.text(10, 120, 'SETTINGS', {fontFamily: 'Arial', fontSize: 25})
-        var container = this.add.container(320, 260, [start, startText, rules, rulesText, settings, settingsText])
+        var startText = this.add.text(30, 10, 'START', { fontFamily: 'Arial', fontSize: 25 })
+        var botEasy = this.add.image(0, 55, 'button').setOrigin(0,0)
+        var botEasyText = this.add.text(10, 65, 'EASY BOT', { fontFamily: 'Arial', fontSize: 25 })
+        var botHard = this.add.image(0, 110, 'button').setOrigin(0,0)
+        var botHardText = this.add.text(10, 120, 'HARD BOT', { fontFamily: 'Arial', fontSize: 25 })
+        var rules = this.add.image(0, 165, 'button').setOrigin(0,0)
+        var rulesText = this.add.text(30, 175, 'RULES', { fontFamily: 'Arial', fontSize: 25 })
+        var settings = this.add.image(0, 220, 'button').setOrigin(0,0)
+        var settingsText = this.add.text(10, 230, 'SETTINGS', {fontFamily: 'Arial', fontSize: 25})
+        var container = this.add.container(320, 260, [start, startText, rules, rulesText, settings, settingsText, botEasy, botEasyText, botHard, botHardText])
         start.setInteractive({ useHandCursor: true })
         rules.setInteractive({ useHandCursor: true })
         settings.setInteractive({ useHandCursor: true })
+        botEasy.setInteractive({ useHandCursor: true })
+        botHard.setInteractive({ useHandCursor: true })
         
         start.on('pointerup', () => {
             this.scene.start('gameboard')
+            game.isBot = 0
+            game.isHard = 0
         })
+
+        botEasy.on('pointerup', () => {
+            this.scene.start('gameboard')
+            game.isBot = 1
+            game.isHard = 0
+        })
+
+        botHard.on('pointerup', () => {
+            this.scene.start('gameboard')
+            game.isBot = 1
+            game.isHard = 1
+        })
+        
     }
 }

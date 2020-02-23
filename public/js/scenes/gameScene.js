@@ -29,12 +29,15 @@ class GameScene extends Phaser.Scene {
         this.load.image('cardBack', 'assets/blue.png')
         this.load.image('cardBackRed', 'assets/red.png')
         this.load.image('skipButton', 'assets/skip.png')
+        this.load.image('playButton', 'assets/Play.png')
     }
     
     create() {
         console.log('creating')
         var scene = this
         this.socket = io()
+        this.socket.emit('startGame', game.isBot, game.isHard)
+
         this.socket.on('cards', (hand, pile) => {
             for (var handCard of hand) {
                 let card = this.newCard(handCard, 900, handY, scene)
@@ -50,13 +53,15 @@ class GameScene extends Phaser.Scene {
         this.skip = this.add.image(deckX, deckY +90, 'skipButton')
         this.skip.setInteractive({ useHandCursor: true })
         this.skip.setVisible(false)
-        this.playCardsButton = this.add.image(playCardsButtonX, playCardsButtonY, 'cardBackRed')
+        this.playCardsButton = this.add.image(playCardsButtonX, playCardsButtonY, 'playButton')
         this.playCardsButton.setInteractive({ useHandCursor: true })
         this.playCardsButton.setVisible(false)
+        this.playCardsButton.setScale(0.1, 0.1)
         
         // Updates the game on whose turn it is
         // Called by server
         this.socket.on('turnChange', (nextTurnPlayerId) => {
+            console.log('changing turn ' + nextTurnPlayerId)
             this.selected = []
             this.playCardsButton.setVisible(false)
             this.skip.setVisible(false)
@@ -278,7 +283,6 @@ class GameScene extends Phaser.Scene {
         var sum = 0
         for (var card of this.selected) {
             sum += card.value
-            console.log(card.name + " : " + card.value)
         }
         if (sum % 10 == this.pile[this.pile.length -1].value % 10) {
             this.playCardsButton.setVisible(true)
