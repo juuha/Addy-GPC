@@ -174,7 +174,6 @@ class GameScene extends Phaser.Scene {
         })
         
         this.socket.on('gameOver', (socketId) => {
-            // TODO add GAME OVER screen
             if (socketId == this.socket.id) {
                 this.winText.setText('YOU WIN!')
                 console.log('You win!')
@@ -226,18 +225,18 @@ class GameScene extends Phaser.Scene {
             while(this.pile.length > 0) {
                 let card = this.pile.pop()
                 card.destroy()
-                console.log(this.pile)
             }
+            this.pile = []
             while (this.hand.length > 0) {
                 let card = this.hand.pop()
                 card.destroy()
-                console.log(this.hand)
             }
+            this.hand = []
             while(this.opponentHand.length > 0) {
                 let card = this.opponentHand.pop()
                 card.destroy()
-                console.log(this.opponentHand)
             }
+            this.opponentHand = []
             this.winContainer.setVisible(false)
             this.socket.emit('restart')
         })
