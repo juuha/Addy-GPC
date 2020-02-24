@@ -128,6 +128,10 @@ class GameScene extends Phaser.Scene {
         // after a player has played cards.
         // Called by server
         this.socket.on('playedCards', (newPile) => {
+            while(this.pile.length >0) {
+                let card = this.pile.pop()
+                card.destroy()
+            }
             this.pile = []
             for (let pileCard of newPile) {
                 const card = this.newCard(pileCard, pileX, pileY, scene)
