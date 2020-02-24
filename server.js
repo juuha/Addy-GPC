@@ -35,6 +35,10 @@ io.on('connection', async function (socket) {
         handleBotTurn(socket.id)
     })
     
+    socket.on('restart', function () {
+        initRoom(socket)
+    })
+    
     socket.on('disconnect', function () {
         disconnect(socket)
     })
@@ -91,7 +95,8 @@ function newSocket (socket, isBot, isHard) {
             isHard: false,
             deck: [],
             pile: [],
-            players: []
+            players: [],
+            finished: 0
         }
         
         for (let i = 1; i < 53; i++) {
@@ -228,6 +233,7 @@ function endTurn (socket) {
     room.drawn = 0
     let nextTurnPlayerId = room.players[room.turn].id
     updateCardCount(room)
+    console.log(util.inspect(rooms, false, null, true))
     io.to(room.id).emit('playedCards', room.pile)
     io.to(room.id).emit('turnChange', nextTurnPlayerId)
 }
@@ -238,6 +244,41 @@ function updateCardCount (room) {
         playerCardCounts[player.id] = player.hand.length
     }
     io.to(room.id).emit('playerCardCounts', playerCardCounts)
+}
+
+function initRoom(socket) {
+    var room = rooms[players[socket.id]]
+    if (room.finished) {
+        room.finished = 0
+        room.drawn = 0
+        room.deck = []
+        room.pile = []
+        for (let key in room.players){
+            let player = room.players[key]
+            player.hand = []
+        }
+        for (let i = 1; i < 53; i++) {
+            let card = {}
+            card.name = i
+            card.value = i % 13
+            card.value = card.value == 0 ? 13 : card.value
+            room.deck.push(card)
+        }
+        room.deck = shuffle(room.deck)
+        room.pile.push(room.deck.pop())
+    }
+    
+    let player = room.players.find((player) => {
+        return player.id == socket.id
+    })
+    for (let i = 0; i < 7; i++) {
+        player.hand.push(room.deck.pop())
+    }
+    let nextTurnPlayerId = room.players[room.turn].id
+    io.to(id).emit('turnChange', nextTurnPlayerId)
+    updateCardCount(room)
+    socket.emit('cards', player.hand, room.pile)
+    console.log(util.inspect(rooms, false, null, true))
 }
 
 function handleBotTurn(socketId) {
@@ -314,6 +355,7 @@ function checkGameEnd (room, socketId) {
         return player.id == socketId
     }).hand.length == 0) {
         io.to(room.id).emit('gameOver', socketId)
+        room.finished = true
         return true
     }
     return false

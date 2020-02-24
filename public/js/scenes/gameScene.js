@@ -16,9 +16,6 @@ class GameScene extends Phaser.Scene {
         this.selected = []
         this.pile = []
         this.turn = 0
-        this.deck
-        this.skip
-        this.playCardsButton
     }
     
     preload() {
@@ -30,6 +27,7 @@ class GameScene extends Phaser.Scene {
         this.load.image('cardBackRed', 'assets/red.png')
         this.load.image('skipButton', 'assets/skip.png')
         this.load.image('playButton', 'assets/play.png')
+        this.load.image('button', 'assets/button.png')
     }
     
     create() {
@@ -57,6 +55,22 @@ class GameScene extends Phaser.Scene {
         this.playCardsButton.setInteractive({ useHandCursor: true })
         this.playCardsButton.setVisible(false)
         this.playCardsButton.setScale(0.1, 0.1)
+
+        this.winScreen = this.add.graphics()
+        this.winScreen.fillStyle(0xd1edd8, 1)
+        this.winScreen.fillRoundedRect(0, 0, 570, 200, 20)
+        this.winText = this.add.text(200, 20, { fontFamily: 'Arial', fontSize: 40, color: 0xffffff })
+        this.winText.setFontFamily('Arial').setFontSize(40).setColor(0xffffff)
+
+        this.restartButton = this.add.image(0, 0, 'button').setInteractive({ useHandCursor: true })
+        this.restartButtonText = this.add.text(-55, -13,  'RESTART', { fontFamily: 'Arial', fontSize: 25 })
+        this.restartCont = this.add.container(200, 120, [this.restartButton, this.restartButtonText])
+
+        this.homeButton = this.add.image(0, 0, 'button').setInteractive({ useHandCursor: true }).setScale(1.2, 1)
+        this.homeButtonText = this.add.text(-70, -13, 'MAIN MENU', { fontFamily: 'Arial', fontSize: 25 })
+        this.homeButtonCont = this.add.container(400, 120, [this.homeButton, this.homeButtonText])
+
+        this.winContainer = this.add.container(115, 140, [this.winScreen, this.winText, this.restartCont, this.homeButtonCont]).setDepth(500).setVisible(false)
         
         // Updates the game on whose turn it is
         // Called by server
@@ -162,10 +176,13 @@ class GameScene extends Phaser.Scene {
         this.socket.on('gameOver', (socketId) => {
             // TODO add GAME OVER screen
             if (socketId == this.socket.id) {
+                this.winText.setText('YOU WIN!')
                 console.log('You win!')
             } else {
+                this.winText.setText('YOU LOSE')
                 console.log('You lose!')
             }
+            this.winContainer.setVisible(true)
         })
         
         // Emits 'hovered' when a game object is hovered by the pointer
@@ -199,6 +216,30 @@ class GameScene extends Phaser.Scene {
         
         this.playCardsButton.on('pointerup', (pointer) => {
             this.playCards()
+        })
+
+        this.homeButton.on('pointerup', (pointer) => {
+            this.scene.start('title')
+        })
+        
+        this.restartButton.on('pointerup', (pointer) => {
+            while(this.pile.length > 0) {
+                let card = this.pile.pop()
+                card.destroy()
+                console.log(this.pile)
+            }
+            while (this.hand.length > 0) {
+                let card = this.hand.pop()
+                card.destroy()
+                console.log(this.hand)
+            }
+            while(this.opponentHand.length > 0) {
+                let card = this.opponentHand.pop()
+                card.destroy()
+                console.log(this.opponentHand)
+            }
+            this.winContainer.setVisible(false)
+            this.socket.emit('restart')
         })
     }
     
@@ -284,7 +325,7 @@ class GameScene extends Phaser.Scene {
         for (var card of this.selected) {
             sum += card.value
         }
-        if (sum % 10 == this.pile[this.pile.length -1].value % 10) {
+        if (sum % 10 == this.pile[this.pile.length -1].value % 10 && sum != 0) {
             this.playCardsButton.setVisible(true)
         } else {
             this.playCardsButton.setVisible(false)
