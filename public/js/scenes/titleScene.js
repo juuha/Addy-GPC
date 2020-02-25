@@ -28,7 +28,6 @@ class TitleScene extends Phaser.Scene {
         var container = this.add.container(320, 260, [start, startText, rules, rulesText, botEasy, botEasyText, botHard, botHardText])
         start.setInteractive({ useHandCursor: true })
         rules.setInteractive({ useHandCursor: true })
-        settings.setInteractive({ useHandCursor: true })
         botEasy.setInteractive({ useHandCursor: true })
         botHard.setInteractive({ useHandCursor: true })
         
