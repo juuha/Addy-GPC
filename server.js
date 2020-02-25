@@ -37,6 +37,7 @@ io.on('connection', async function (socket) {
     
     socket.on('restart', function () {
         initRoom(socket)
+        console.log(util.inspect(rooms, false, null, true))
     })
     
     socket.on('disconnect', function () {
@@ -181,17 +182,19 @@ function drawCard (socket) {
     }
     if (room.deck.length > 0) {
         let drawnCard = room.deck.pop()
-        room.players.find(function (player) {
+        let player = room.players.find((player) => {
             return player.id == socket.id 
-        }).hand.push(drawnCard)
+        }) 
+        player.hand.push(drawnCard)
         room.drawn++
         socket.emit('drawnCard', drawnCard, (room.drawn == 3))
         updateCardCount(room)
     } else if (shufflePileIntoDeck(room)) {
         let drawnCard = room.deck.pop()
-        room.players.find(function (player) {
+        let player = room.players.find((player) => {
             return player.id == socket.id 
-        }).hand.push(drawnCard)
+        })
+        player.hand.push(drawnCard)
         room.drawn++
         socket.emit('drawnCard', drawnCard, (room.drawn == 3))
         updateCardCount(room)
@@ -264,6 +267,7 @@ function initRoom(socket) {
             let player = room.players[key]
             player.hand = []
         }
+        console.log(util.inspect(rooms, false, null, true))
         for (let i = 1; i < 53; i++) {
             let card = {}
             card.name = i
@@ -273,6 +277,16 @@ function initRoom(socket) {
         }
         room.deck = shuffle(room.deck)
         room.pile.push(room.deck.pop())
+    }
+    if(room.isBot) {
+        room.joinable = false
+        let botPlayer = room.players.find((botPlayer) => {
+            return botPlayer.id == room.id
+        })
+        botPlayer.hand = []
+        for (let i = 0; i < 7; i++) {
+            botPlayer.hand.push(room.deck.pop())
+        }
     }
     
     let player = room.players.find((player) => {
@@ -285,7 +299,6 @@ function initRoom(socket) {
     io.to(id).emit('turnChange', nextTurnPlayerId)
     updateCardCount(room)
     socket.emit('cards', player.hand, room.pile)
-    //console.log(util.inspect(rooms, false, null, true))
 }
 
 function handleBotTurn(socketId) {
@@ -357,9 +370,10 @@ function handleBotTurn(socketId) {
 }
 
 function checkGameEnd (room, socketId) {
-    if (room.players.find(function (player) {
+    let player = room.players.find((player) => {
         return player.id == socketId
-    }).hand.length == 0) {
+    })
+    if (player.hand.length == 0) {
         io.to(room.id).emit('gameOver', socketId) //socketId is the id of the winner
         room.finished = true
     }
