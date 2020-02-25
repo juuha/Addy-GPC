@@ -42,6 +42,11 @@ io.on('connection', async function (socket) {
     socket.on('disconnect', function () {
         disconnect(socket)
     })
+
+    socket.on('end', function (){
+        disconnect(socket)
+        socket.disconnect(0);
+    });
     
 })
 
@@ -156,8 +161,10 @@ function disconnect(socket) {
             room.players.splice(indexOfPlayer, 1)
         }
     }
-    if (!room.players.length) {
+    if (!room.players.length > 0) {
         delete rooms[room.id]
+    } else {
+        updateCardCount(room)
     }
     
     delete players[socket.id]
@@ -218,7 +225,7 @@ function playCards (socket, cards) {
         }
         socket.emit('playSuccess', cards)
         endTurn(socket)
-        
+        checkGameEnd(room, socket.id)
         handleBotTurn(socket.id)
     }
 }
@@ -233,7 +240,7 @@ function endTurn (socket) {
     room.drawn = 0
     let nextTurnPlayerId = room.players[room.turn].id
     updateCardCount(room)
-    console.log(util.inspect(rooms, false, null, true))
+    //console.log(util.inspect(rooms, false, null, true))
     io.to(room.id).emit('playedCards', room.pile)
     io.to(room.id).emit('turnChange', nextTurnPlayerId)
 }
@@ -278,14 +285,13 @@ function initRoom(socket) {
     io.to(id).emit('turnChange', nextTurnPlayerId)
     updateCardCount(room)
     socket.emit('cards', player.hand, room.pile)
-    console.log(util.inspect(rooms, false, null, true))
+    //console.log(util.inspect(rooms, false, null, true))
 }
 
 function handleBotTurn(socketId) {
     var room = rooms[players[socketId]]
     var done = false
-    var gameEnded = checkGameEnd(room, socketId)
-    if (!gameEnded && room.isBot) {
+    if (!room.finished && room.isBot) {
         let bot = room.players[room.turn]
         nextTurnPlayerId = room.players[room.turn].id
         for (var drawn = 0; drawn < 3; drawn++){
@@ -345,7 +351,7 @@ function handleBotTurn(socketId) {
             }
         }
         endTurn({id: room.id})
-        var gameEnded = checkGameEnd(room, room.id)
+        checkGameEnd(room, room.id)
     }
     
 }
@@ -354,11 +360,9 @@ function checkGameEnd (room, socketId) {
     if (room.players.find(function (player) {
         return player.id == socketId
     }).hand.length == 0) {
-        io.to(room.id).emit('gameOver', socketId)
+        io.to(room.id).emit('gameOver', socketId) //socketId is the id of the winner
         room.finished = true
-        return true
     }
-    return false
 }
 
 function checkOne (room, bot) {
