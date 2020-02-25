@@ -16,6 +16,7 @@ class GameScene extends Phaser.Scene {
         this.selected = []
         this.pile = []
         this.turn = 0
+        this.wtf = 0
     }
     
     preload() {
@@ -55,21 +56,21 @@ class GameScene extends Phaser.Scene {
         this.playCardsButton.setInteractive({ useHandCursor: true })
         this.playCardsButton.setVisible(false)
         this.playCardsButton.setScale(0.1, 0.1)
-
+        
         this.winScreen = this.add.graphics()
         this.winScreen.fillStyle(0xd1edd8, 1)
         this.winScreen.fillRoundedRect(0, 0, 570, 200, 20)
         this.winText = this.add.text(200, 20, { fontFamily: 'Arial', fontSize: 40, color: 0xffffff })
         this.winText.setFontFamily('Arial').setFontSize(40).setColor(0xffffff)
-
+        
         this.restartButton = this.add.image(0, 0, 'button').setInteractive({ useHandCursor: true })
         this.restartButtonText = this.add.text(-55, -13,  'RESTART', { fontFamily: 'Arial', fontSize: 25 })
         this.restartCont = this.add.container(200, 120, [this.restartButton, this.restartButtonText])
-
+        
         this.homeButton = this.add.image(0, 0, 'button').setInteractive({ useHandCursor: true }).setScale(1.2, 1)
         this.homeButtonText = this.add.text(-70, -13, 'MAIN MENU', { fontFamily: 'Arial', fontSize: 25 })
         this.homeButtonCont = this.add.container(400, 120, [this.homeButton, this.homeButtonText])
-
+        
         this.winContainer = this.add.container(115, 140, [this.winScreen, this.winText, this.restartCont, this.homeButtonCont]).setDepth(500).setVisible(false)
         
         // Updates the game on whose turn it is
@@ -163,13 +164,14 @@ class GameScene extends Phaser.Scene {
         // Updates card counts for other plyers
         // Called by server
         this.socket.on('playerCardCounts', (playerCardCounts) => {
-            for (var [player, count] of Object.entries(playerCardCounts)) {
-                if (this.socket.id != player) {
-                    for (let card of this.opponentHand) {
-                        card.destroy()
-                    }
+            while (this.opponentHand.length > 0) {
+                let card = this.opponentHand.pop()
+                card.destroy()
+            }
+            for (var playerId in playerCardCounts) {
+                if (this.socket.id != playerId) {
                     this.opponentHand = []
-                    for (let i = 0; i < count; i++) {
+                    for (let i = 0; i < playerCardCounts[playerId]; i++) {
                         let card = scene.add.image(48, 100, 'cardBack')
                         this.opponentHand.push(card)
                     }
@@ -220,27 +222,15 @@ class GameScene extends Phaser.Scene {
         this.playCardsButton.on('pointerup', (pointer) => {
             this.playCards()
         })
-
+        
         this.homeButton.on('pointerup', (pointer) => {
+            this.resetBoard()
+            this.socket.emit('end')
             this.scene.start('title')
         })
         
         this.restartButton.on('pointerup', (pointer) => {
-            while(this.pile.length > 0) {
-                let card = this.pile.pop()
-                card.destroy()
-            }
-            this.pile = []
-            while (this.hand.length > 0) {
-                let card = this.hand.pop()
-                card.destroy()
-            }
-            this.hand = []
-            while(this.opponentHand.length > 0) {
-                let card = this.opponentHand.pop()
-                card.destroy()
-            }
-            this.opponentHand = []
+            this.resetBoard()
             this.winContainer.setVisible(false)
             this.socket.emit('restart')
         })
@@ -348,5 +338,22 @@ class GameScene extends Phaser.Scene {
         
         return card
     }
+    
+    resetBoard = () => {
+        while(this.pile.length > 0) {
+            let card = this.pile.pop()
+            card.destroy()
+        }
+        this.pile = []
+        while (this.hand.length > 0) {
+            let card = this.hand.pop()
+            card.destroy()
+        }
+        this.hand = []
+        while(this.opponentHand.length > 0) {
+            let card = this.opponentHand.pop()
+            card.destroy()
+        }
+        this.opponentHand = []
+    }
 }
-
