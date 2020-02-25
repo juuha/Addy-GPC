@@ -15,6 +15,15 @@ app.get('/', function (req, res) {
     res.sendFile(__dirname + '/index.html')
 })
 
+let port = process.env.PORT
+if (port == null || port == '') {
+    port = 8081
+}
+server.listen(port, function () {
+    console.log(`Listening on ${server.address().port}`)
+})
+
+
 io.on('connection', async function (socket) {
     console.log('A user connected with id: ' + socket.id)
     
@@ -43,16 +52,12 @@ io.on('connection', async function (socket) {
     socket.on('disconnect', function () {
         disconnect(socket)
     })
-
+    
     socket.on('end', function (){
         disconnect(socket)
         socket.disconnect(0);
     });
     
-})
-
-server.listen(8081, function () {
-    console.log(`Listening on ${server.address().port}`)
 })
 
 function shuffle (deck) {
