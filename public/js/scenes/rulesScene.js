@@ -20,16 +20,16 @@ class RulesScene extends Phaser.Scene {
             x: 130,
             y: 100,
             text: 'Objective: Empty your hand of cards.\n\n'
-            + "     On your turn, you can play up to 3 cards such that their sum ends " 
-            + "in the same number as the card on top of the pile. \n"
-            + "     For example Ace + Queen + 10 = 1 + 12 + 10 = 23 -> ends in 3.\n"
-            + "     To play cards, you can click on your cards in your hand to choose "
-            + "and then either click the play button or the pile to play them.\n"
-            + "     You can draw up to 3 cards on your turn by clicking "
+            + "On your turn, you can play up to 3 cards such that their sum ends " 
+            + "in the same number as the card on top of the pile. \n\n"
+            + "For example Ace + Queen + 10 = 1 + 12 + 10 = 23 -> ends in 3.\n\n"
+            + "To play cards, you can click on your cards in your hand to choose "
+            + "and then either click the play button or the pile to play them.\n\n"
+            + "You can draw up to 3 cards on your turn by clicking "
             + "the deck on the right. After that, if you can't find any cards "
-            + "to play, you can click on the skip button to pass the turn.\n"
-            + "     If the deck is blue, it means it's your turn. If the deck is "
-            + "red and the skip button is not visible, it is the opponents turn.",
+            + "to play, you can click on the skip button to pass the turn.\n\n"
+            + "If the deck is blue, it means it's your turn. If the deck is "
+            + "red and the skip button is not visible, it is the opponent's turn.",
             origin: { x: 0, y: 0 },
             style: {
                 font: 'bold 20px Arial',
