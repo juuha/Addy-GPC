@@ -48,6 +48,10 @@ class TitleScene extends Phaser.Scene {
             game.isBot = 1
             game.isHard = 1
         })
+
+        rules.on('pointerup', () => {
+            this.scene.start('rules')
+        })
         
     }
 }
