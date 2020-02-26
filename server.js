@@ -46,7 +46,6 @@ io.on('connection', async function (socket) {
     
     socket.on('restart', function () {
         initRoom(socket)
-        console.log(util.inspect(rooms, false, null, true))
     })
     
     socket.on('disconnect', function () {
@@ -291,7 +290,6 @@ function initRoom(socket) {
             let player = room.players[key]
             player.hand = []
         }
-        console.log(util.inspect(rooms, false, null, true))
         for (let i = 1; i < 53; i++) {
             let card = {}
             card.name = i
@@ -321,7 +319,7 @@ function initRoom(socket) {
         player.hand.push(room.deck.pop())
     }
     let nextTurnPlayerId = room.players[room.turn].id
-    io.to(id).emit('turnChange', nextTurnPlayerId)
+    io.to(room.id).emit('turnChange', nextTurnPlayerId)
     updateCardCount(room)
     socket.emit('cards', player.hand, room.pile)
 }
