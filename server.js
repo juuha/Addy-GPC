@@ -41,7 +41,7 @@ io.on('connection', async function (socket) {
     
     socket.on('endTurn', function () {
         endTurn(socket)
-        handleBotTurn(socket.id)
+        handleBotTurn(socket)
     })
     
     socket.on('restart', function () {
@@ -156,7 +156,10 @@ function newSocket (socket, isBot, isHard) {
 
 function disconnect(socket) {
     var room = rooms[players[socket.id]]
-    if (!room) return
+    if (!room) {
+        socket.emit('disconnected')
+        return
+    }
     room.joinable = true
     if (room.isBot) {
         room.players = []
@@ -180,6 +183,10 @@ function disconnect(socket) {
 
 function drawCard (socket) {
     var room = rooms[players[socket.id]]
+    if (!room) {
+        socket.emit('disconnected')
+        return
+    }
     if (room.players[room.turn].id != socket.id) return
     if (room.drawn >= 3) {
         socket.emit('drewThreeAlready')
@@ -210,6 +217,10 @@ function drawCard (socket) {
 
 function playCards (socket, cards) {
     var room = rooms[players[socket.id]]
+    if (!room) {
+        socket.emit('disconnected')
+        return
+    }
     if (room.players[room.turn].id != socket.id) return
     var sum = 0
     cards.forEach(card => {
@@ -234,12 +245,16 @@ function playCards (socket, cards) {
         socket.emit('playSuccess', cards)
         endTurn(socket)
         checkGameEnd(room, socket.id)
-        handleBotTurn(socket.id)
+        handleBotTurn(socket)
     }
 }
 
 function endTurn (socket) {
     var room = rooms[players[socket.id]]
+    if (!room) {
+        socket.emit('disconnected')
+        return
+    }
     if (room.players[room.turn].id != socket.id) return
     room.turn++
     if (room.turn > room.players.length -1 ) {
@@ -263,6 +278,10 @@ function updateCardCount (room) {
 
 function initRoom(socket) {
     var room = rooms[players[socket.id]]
+    if (!room){
+        socket.emit('disconnected')
+        return
+    }
     if (room.finished) {
         room.finished = 0
         room.drawn = 0
@@ -306,8 +325,12 @@ function initRoom(socket) {
     socket.emit('cards', player.hand, room.pile)
 }
 
-function handleBotTurn(socketId) {
-    var room = rooms[players[socketId]]
+function handleBotTurn(socket) {
+    var room = rooms[players[socket.id]]
+    if (!room) {
+        socket.emit('disconnected')
+        return
+    }
     var done = false
     if (!room.finished && room.isBot) {
         let bot = room.players[room.turn]
