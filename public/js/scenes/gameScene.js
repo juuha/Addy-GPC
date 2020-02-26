@@ -190,6 +190,11 @@ class GameScene extends Phaser.Scene {
             this.winContainer.setVisible(true)
         })
         
+        this.socket.on('disconnected', () => {
+            console.log('Connection lost.')
+            this.disconnection()
+        })
+
         // Emits 'hovered' when a game object is hovered by the pointer
         this.input.on('pointerover', (pointer, gameObject) => {           
             gameObject[0].emit('hovered', gameObject[0])
@@ -355,5 +360,14 @@ class GameScene extends Phaser.Scene {
             card.destroy()
         }
         this.opponentHand = []
+    }
+
+    disconnection = () => {
+        this.resetBoard()
+        this.winText.setText('Connection lost.')
+        this.winText.x = 150
+        this.homeButtonCont.x = 300
+        this.restartCont.setVisible(false)
+        this.winContainer.setVisible(true)
     }
 }
