@@ -303,6 +303,7 @@ function initRoom(socket) {
         room.pile.push(room.deck.pop())
     }
     if(room.isBot) {
+        room.turn = 0
         room.joinable = false
         let botPlayer = room.players.find((botPlayer) => {
             return botPlayer.id == room.id
